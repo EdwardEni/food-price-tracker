@@ -25,3 +25,9 @@ jobs:
 
     - name: Run scraper script
       run: python src/scraper/scrape.py
+
+    - name: Upload scraped data
+      uses: actions/upload-artifact@v3
+      with:
+        name: scraped-data         # Display name for the artifact
+        path: data/clean/food_prices_clean.csv   # Change this path to your actual output file path
