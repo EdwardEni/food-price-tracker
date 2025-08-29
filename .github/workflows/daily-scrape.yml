@@ -4,6 +4,7 @@ on:
   schedule:
     # Runs every day at 2:00 AM UTC, adjust as needed
     - cron: '0 2 * * *'
+  workflow_dispatch:
 
 jobs:
   run-scraper:
