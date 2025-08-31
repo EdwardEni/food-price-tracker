@@ -4,45 +4,49 @@ import logging
 from datetime import datetime
 
 # Setup logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
-# Configure your Postgres connection string here
+# Database config - update your credentials
 DB_USER = "postgres"
 DB_PASS = "your_password"
 DB_HOST = "localhost"
 DB_PORT = "5432"
 DB_NAME = "food_price_db"
-
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Deduplication window (days)
+# Deduplication window in days
 DEDUP_DAYS = 7
 
 def clean_data(df):
-    # Basic cleaning: strip spaces, convert price to float
     df['product_name'] = df['product_name'].str.strip()
     df['price'] = (
         df['price']
+        .astype(str)
         .str.replace('₦', '')
         .str.replace(',', '')
-        .astype(float)
+        .str.strip()
     )
+    df['price'] = pd.to_numeric(df['price'], errors='coerce')
+    df = df.dropna(subset=['price'])  # Drop rows where price conversion failed
+    
     df['currency'] = df.get('currency', 'NGN')
-    df['scrape_date'] = pd.to_datetime(df.get('scrape_date', datetime.now()))
-    df['product_url'] = df['product_url'].str.strip()
+    df['scrape_date'] = pd.to_datetime(df.get('scrape_date', datetime.now()), errors='coerce')
+    df['product_url'] = df['product_url'].fillna('unknown').str.strip()
     df['source'] = df.get('source', 'Jumia')
+    df['brand'] = df.get('brand', None)
+    
     return df
 
 def load_to_db(df):
     engine = create_engine(DATABASE_URL)
     with engine.begin() as conn:  # Transaction scope
         for _, row in df.iterrows():
-            # Deduplicate by source + product_url + scrape_date within last 7 days
+            # Deduplicate by source + product_url + scrape_date within last DEDUP_DAYS
             query = text("""
                 SELECT id FROM food_prices
                 WHERE source = :source
                 AND product_url = :product_url
-                AND scrape_date >= (CURRENT_DATE - INTERVAL ':dedup_days days')
+                AND scrape_date >= (CURRENT_DATE - INTERVAL ':dedup_days day')
                 LIMIT 1
             """)
             existing = conn.execute(query, {
@@ -65,16 +69,14 @@ def load_to_db(df):
                 "price": row['price'],
                 "currency": row['currency'],
                 "product_url": row['product_url'],
-                "brand": row.get('brand'),
+                "brand": row['brand'],
                 "source": row['source'],
                 "scrape_date": row['scrape_date']
             })
             logging.info(f"Inserted: {row['product_name']}")
 
 def main():
-    # Path to raw CSV scraped data
-    raw_csv_path = 'data/raw/products.csv'
-
+    raw_csv_path = 'data/raw/products.csv'  # Update CSV path as needed
     try:
         df = pd.read_csv(raw_csv_path)
         logging.info(f"Loaded {len(df)} records from raw CSV")
