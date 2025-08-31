@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  run-scraper:
+  run-scraper-and-loader:
     runs-on: ubuntu-latest
 
     steps:
@@ -24,11 +24,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run scraper script
+      - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
-      - name: Upload scraped data
+      - name: Run data loader script (load to DB)
+        run: python src/loader/load_to_db.py
+
+      - name: Upload downloaded raw CSV
         uses: actions/upload-artifact@v4
         with:
-          name: scraped-data
-          path: data/clean/food_prices_clean.csv  # Update this path to the actual CSV file your script saves
+          name: raw-wfp-food-prices-csv
+          path: data/raw/wfpvam_foodprices.csv  # Path where scrape.py saves the CSV

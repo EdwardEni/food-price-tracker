@@ -1,11 +1,8 @@
 import requests
-from bs4 import BeautifulSoup
-import csv
 import logging
-from datetime import datetime
 import os
 
-# Setup basic logging
+# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(levelname)s] %(message)s',
@@ -15,47 +12,27 @@ logging.basicConfig(
     ]
 )
 
-def scrape_page(url):
+def download_file(url, save_path):
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()  # Raise error for bad status
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        # Adjust these selectors according to the actual website structure
-        products = []
-        product_elements = soup.select('.product-item')  # Example container selector
-        for elem in product_elements:
-            name_tag = elem.select_one('.product-name')
-            price_tag = elem.select_one('.product-price')
-            if name_tag and price_tag:
-                name = name_tag.get_text(strip=True)
-                price = price_tag.get_text(strip=True)
-                products.append({'name': name, 'price': price, 'scraped_at': datetime.now().isoformat()})
-        logging.info(f"Scraped {len(products)} products from {url}")
-        return products
-
+        logging.info(f"Downloading from: {url}")
+        response = requests.get(url, stream=True, timeout=30)
+        response.raise_for_status()
+        os.makedirs(os.path.dirname(save_path), exist_ok=True)
+        with open(save_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+        logging.info(f"Saved file to: {save_path}")
+        return True
     except Exception as e:
-        logging.error(f"Error scraping {url}: {e}")
-        return []
-
-def save_to_csv(data, filename='scraped_prices.csv'):
-    fieldnames = ['name', 'price', 'scraped_at']
-    try:
-        with open(filename, 'a', newline='', encoding='utf-8') as csvfile:
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            csvfile.seek(0, 2)  # Go to the end of file
-            if csvfile.tell() == 0:
-                writer.writeheader()
-            for row in data:
-                writer.writerow(row)
-        logging.info(f"Saved {len(data)} records to {filename}")
-    except Exception as e:
-        logging.error(f"Error saving to CSV: {e}")
+        logging.error(f"Failed to download {url}: {e}")
+        return False
 
 if __name__ == "__main__":
-    target_url = 'https://example.com/products'  # <-- Replace with actual URL
-    scraped_data = scrape_page(target_url)
-    if scraped_data:
-        save_to_csv(scraped_data)
+    # Direct CSV download URL from the Global WFP Food Prices dataset on HDX
+    csv_url = "https://data.humdata.org/dataset/4fdcd4dc-5c2f-43af-a1e4-93c9b6539a27/resource/12d7c8e3-eff9-4db0-93b7-726825c4fe9a/download/wfpvam_foodprices.csv"
+    save_location = "data/raw/wfpvam_foodprices.csv"
+    success = download_file(csv_url, save_location)
+    if success:
+        logging.info("CSV download completed successfully.")
     else:
-        logging.info("No data scraped.")
+        logging.error("CSV download failed.")
