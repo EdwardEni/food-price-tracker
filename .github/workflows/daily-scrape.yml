@@ -26,13 +26,11 @@ jobs:
           --health-retries 5
 
     steps:
-      # Checkout repo using latest commit reference to avoid old workflow runs
       - name: Checkout repo (force ref)
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}  # Ensures the runner checks out the exact commit for this workflow run
+          ref: ${{ github.ref }}
 
-      # Fail early if any workflow still references old loader path
       - name: Assert workflow uses ETL path
         run: |
           if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
@@ -42,57 +40,46 @@ jobs:
             echo "No legacy loader path found — OK"
           fi
 
-      # Debug step: List all files recursively to confirm repo state
-      - name: List files for debug 
+      - name: List files for debug
         run: ls -R
 
-      # Debug: Echo loader script path from workflow YAML
       - name: Echo loader script path from workflow YAML
         run: echo "Attempting to run: src/etl/load_to_db.py"
 
-      # Debug: List contents of src and src/etl folders
       - name: List 'src' and 'src/etl' folders
         run: |
           ls -l src
           ls -l src/etl
 
-      # Debug: List workflow YAML files and show this workflow for confirmation
       - name: List workflow YAMLs for duplicate config
         run: |
           ls -l .github/workflows
           cat .github/workflows/daily-scrape.yml
 
-      # Debug: Print current branch and commit hash for verification
       - name: Print branch and commit hash
         run: |
           git branch
           git rev-parse HEAD
 
-      # Debug: List all Python files in the repo for visibility
       - name: List all Python files in repo
         run: find . -name "*.py"
 
-      # Debug: Test import of ETL script as Python module
       - name: Run ETL script via module import
         run: python -c "import src.etl.load_to_db"
 
-      # Setup Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'      # Use a stable Python version for GitHub Actions
+          python-version: '3.11'
 
-      # Install required dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # Run the scraper script to download CSV
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
-      # Check file existence before running loader
       - name: Check load_to_db.py existence
         run: |
           if [ -f src/etl/load_to_db.py ]; then
@@ -103,13 +90,11 @@ jobs:
             exit 1
           fi
 
-      # Run data loader script with correct DB URL as environment variable
       - name: Run data loader script (load to DB)
         env:
           DATABASE_URL: postgresql://postgres:discombobulated@localhost:5432/food_price_db
         run: python src/etl/load_to_db.py
 
-      # Upload the downloaded raw CSV as artifact
       - name: Upload downloaded raw CSV
         uses: actions/upload-artifact@v4
         with:
