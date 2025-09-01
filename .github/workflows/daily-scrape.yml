@@ -29,8 +29,29 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # Debug step to list all files in repo (recursive)
       - name: List files for debug 
         run: ls -R
+
+      # Debug: Echo the loader script path that workflow runs
+      - name: Echo loader script path from workflow YAML
+        run: echo "Attempting to run: src/etl/load_to_db.py"
+
+      # Debug: List contents of src and src/etl folders
+      - name: List 'src' and 'src/etl' folders
+        run: ls -l src && ls -l src/etl
+
+      # Debug: List workflow YAML files and display this file content for validation
+      - name: List workflow YAMLs for duplicate config
+        run: ls -l .github/workflows && cat .github/workflows/daily-scrape.yml
+
+      # Debug: Print the current branch and commit hash for confirmation
+      - name: Print branch and commit hash
+        run: git branch && git rev-parse HEAD
+
+      # Debug: List all Python files in the repository
+      - name: List all Python files in repo
+        run: find . -name "*.py"
 
       - name: Run ETL script via module import
         run: python -c "import src.etl.load_to_db"
