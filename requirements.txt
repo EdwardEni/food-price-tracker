@@ -1,8 +1,11 @@
 requests
-beautifulsoup4
 pandas
 numpy
-prophet
-streamlit
+SQLAlchemy
 psycopg2-binary
+prophet
+statsmodels
+streamlit
 flask
+gunicorn
+beautifulsoup4

@@ -10,6 +10,21 @@ jobs:
   run-scraper-and-loader:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: discombobulated
+          POSTGRES_DB: food_price_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -17,7 +32,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.13.1'  # Use your preferred Python version
+          python-version: '3.11'      # Use a stable Python version for GitHub Actions
 
       - name: Install dependencies
         run: |
@@ -27,6 +42,9 @@ jobs:
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
+      # Ensure your load_to_db.py uses this database URL:
+      # postgresql://postgres:gapgap@localhost:5432/food_price_db
+
       - name: Run data loader script (load to DB)
         run: python src/loader/load_to_db.py
 
@@ -34,4 +52,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: raw-wfp-food-prices-csv
-          path: data/raw/wfpvam_foodprices.csv  # Path where scrape.py saves the CSV
+          path: data/raw/wfpvam_foodprices.csv
