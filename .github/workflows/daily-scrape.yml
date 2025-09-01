@@ -29,30 +29,37 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      # Debug step to list all files in repo (recursive)
+      # Debug step: List all files in repo (recursive)
       - name: List files for debug 
         run: ls -R
 
-      # Debug: Echo the loader script path that workflow runs
+      # Debug step: Echo the loader script path that workflow runs
       - name: Echo loader script path from workflow YAML
         run: echo "Attempting to run: src/etl/load_to_db.py"
 
-      # Debug: List contents of src and src/etl folders
+      # Debug step: List contents of src and src/etl folders
       - name: List 'src' and 'src/etl' folders
-        run: ls -l src && ls -l src/etl
+        run: |
+          ls -l src
+          ls -l src/etl
 
-      # Debug: List workflow YAML files and display this file content for validation
+      # Debug step: List workflow YAML files and display this file content for validation
       - name: List workflow YAMLs for duplicate config
-        run: ls -l .github/workflows && cat .github/workflows/daily-scrape.yml
+        run: |
+          ls -l .github/workflows
+          cat .github/workflows/daily-scrape.yml
 
-      # Debug: Print the current branch and commit hash for confirmation
+      # Debug step: Print the current branch and commit hash for confirmation
       - name: Print branch and commit hash
-        run: git branch && git rev-parse HEAD
+        run: |
+          git branch
+          git rev-parse HEAD
 
-      # Debug: List all Python files in the repository
+      # Debug step: List all Python files in the repository
       - name: List all Python files in repo
         run: find . -name "*.py"
 
+      # Debug step: Try to import ETL script as module
       - name: Run ETL script via module import
         run: python -c "import src.etl.load_to_db"
 
@@ -69,6 +76,7 @@ jobs:
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
+      # Debug step: Check if load_to_db.py exists before running
       - name: Check load_to_db.py existence
         run: |
           if [ -f src/etl/load_to_db.py ]; then
