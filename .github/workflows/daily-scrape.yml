@@ -33,6 +33,7 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
+      # (Optional) Remove this assert step once you know no loader path exists. Or keep for safety!
       - name: Assert workflow uses ETL path
         run: |
           if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
