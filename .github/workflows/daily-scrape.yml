@@ -1,3 +1,5 @@
+# Refresh workflow registration
+
 name: Daily Scraper Run
 
 on:
