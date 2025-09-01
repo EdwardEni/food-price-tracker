@@ -9,6 +9,7 @@ on:
 jobs:
   run-scraper-and-loader:
     runs-on: ubuntu-latest
+
     services:
       postgres:
         image: postgres:latest
@@ -23,11 +24,13 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+
     steps:
       - name: Checkout repo (force ref)
         uses: actions/checkout@v4
         with:
           ref: ${{ github.ref }}
+
       - name: Assert workflow uses ETL path
         run: |
           if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
@@ -36,36 +39,47 @@ jobs:
           else
             echo "No legacy loader path found — OK"
           fi
+
       - name: List files for debug
         run: ls -R
+
       - name: Echo loader script path from workflow YAML
         run: echo "Attempting to run: src/etl/load_to_db.py"
+
       - name: List 'src' and 'src/etl' folders
         run: |
           ls -l src
           ls -l src/etl
+
       - name: List workflow YAMLs for duplicate config
         run: |
           ls -l .github/workflows
           cat .github/workflows/daily-scrape.yml
+
       - name: Print branch and commit hash
         run: |
           git branch
           git rev-parse HEAD
+
       - name: List all Python files in repo
         run: find . -name "*.py"
+
       - name: Run ETL script via module import
         run: python -c "import src.etl.load_to_db"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
+
       - name: Check load_to_db.py existence
         run: |
           if [ -f src/etl/load_to_db.py ]; then
@@ -75,10 +89,12 @@ jobs:
             ls -l src/etl
             exit 1
           fi
+
       - name: Run data loader script (load to DB)
         env:
           DATABASE_URL: postgresql://postgres:discombobulated@localhost:5432/food_price_db
         run: python src/etl/load_to_db.py
+
       - name: Upload downloaded raw CSV
         uses: actions/upload-artifact@v4
         with:
