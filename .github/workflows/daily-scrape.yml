@@ -46,7 +46,8 @@ jobs:
         run: ls -R
 
       - name: Echo loader script path from workflow YAML
-        run: echo "Attempting to run: src/etl/load_to_db.py"
+        run: |
+          echo "Attempting to run: src/etl/load_to_db.py"
 
       - name: List 'src' and 'src/etl' folders
         run: |
