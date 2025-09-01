@@ -46,7 +46,7 @@ jobs:
       # postgresql://postgres:gapgap@localhost:5432/food_price_db
 
       - name: Run data loader script (load to DB)
-        run: python src/loader/load_to_db.py
+        run: python src/etl/load_to_db.py
 
       - name: Upload downloaded raw CSV
         uses: actions/upload-artifact@v4
