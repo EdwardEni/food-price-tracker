@@ -29,6 +29,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: List files for debug 
+        run: ls -R
+
+      - name: Run ETL script via module import
+        run: python -c "import src.etl.load_to_db"
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -42,8 +48,18 @@ jobs:
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
+      - name: Check load_to_db.py existence
+        run: |
+          if [ -f src/etl/load_to_db.py ]; then
+            echo "File exists"
+          else
+            echo "File NOT found"
+            ls -l src/etl
+            exit 1
+          fi
+
       # Ensure your load_to_db.py uses this database URL:
-      # postgresql://postgres:gapgap@localhost:5432/food_price_db
+      # postgresql://postgres:discombobulated@localhost:5432/food_price_db
 
       - name: Run data loader script (load to DB)
         run: python src/etl/load_to_db.py
