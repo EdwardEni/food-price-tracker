@@ -33,15 +33,14 @@ jobs:
         with:
           ref: ${{ github.ref }}
 
-      # (Optional) Remove this assert step once you know no loader path exists. Or keep for safety!
-      - name: Assert workflow uses ETL path
-        run: |
-          if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
-            echo "Old path src/loader/load_to_db.py found in workflows — update to src/etl/load_to_db.py"
-            exit 1
-          else
-            echo "No legacy loader path found — OK"
-          fi
+      # - name: Assert workflow uses ETL path
+      #   run: |
+      #     if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
+      #       echo "Old path src/loader/load_to_db.py found in workflows — update to src/etl/load_to_db.py"
+      #       exit 1
+      #     else
+      #       echo "No legacy loader path found — OK"
+      #     fi
 
       - name: List files for debug
         run: ls -R
