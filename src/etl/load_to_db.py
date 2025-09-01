@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from sqlalchemy import create_engine, text
 import logging
@@ -6,13 +7,17 @@ from datetime import datetime
 # Setup logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
-# Database config - update your credentials as needed
-DB_USER = "postgres"
-DB_PASS = "your_password"
-DB_HOST = "localhost"
-DB_PORT = "5432"
-DB_NAME = "food_price_db"
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+# Database config with environment variables and defaults for local runs
+DB_USER = os.getenv("DB_USER", "postgres")
+DB_PASS = os.getenv("DB_PASS", "discombobulated")
+DB_HOST = os.getenv("DB_HOST", "localhost")
+DB_PORT = os.getenv("DB_PORT", "5432")
+DB_NAME = os.getenv("DB_NAME", "food_price_db")
+
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    f"postgresql://{DB_USER}:{DB_PASS}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+)
 
 # Deduplication window in days
 DEDUP_DAYS = 7

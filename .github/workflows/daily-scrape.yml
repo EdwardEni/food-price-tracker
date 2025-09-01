@@ -26,57 +26,73 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+      # Checkout repo using latest commit reference to avoid old workflow runs
+      - name: Checkout repo (force ref)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # Ensures the runner checks out the exact commit for this workflow run
 
-      # Debug step: List all files in repo (recursive)
+      # Fail early if any workflow still references old loader path
+      - name: Assert workflow uses ETL path
+        run: |
+          if grep -R "src/loader/load_to_db.py" -n .github/workflows; then
+            echo "Old path src/loader/load_to_db.py found in workflows — update to src/etl/load_to_db.py"
+            exit 1
+          else
+            echo "No legacy loader path found — OK"
+          fi
+
+      # Debug step: List all files recursively to confirm repo state
       - name: List files for debug 
         run: ls -R
 
-      # Debug step: Echo the loader script path that workflow runs
+      # Debug: Echo loader script path from workflow YAML
       - name: Echo loader script path from workflow YAML
         run: echo "Attempting to run: src/etl/load_to_db.py"
 
-      # Debug step: List contents of src and src/etl folders
+      # Debug: List contents of src and src/etl folders
       - name: List 'src' and 'src/etl' folders
         run: |
           ls -l src
           ls -l src/etl
 
-      # Debug step: List workflow YAML files and display this file content for validation
+      # Debug: List workflow YAML files and show this workflow for confirmation
       - name: List workflow YAMLs for duplicate config
         run: |
           ls -l .github/workflows
           cat .github/workflows/daily-scrape.yml
 
-      # Debug step: Print the current branch and commit hash for confirmation
+      # Debug: Print current branch and commit hash for verification
       - name: Print branch and commit hash
         run: |
           git branch
           git rev-parse HEAD
 
-      # Debug step: List all Python files in the repository
+      # Debug: List all Python files in the repo for visibility
       - name: List all Python files in repo
         run: find . -name "*.py"
 
-      # Debug step: Try to import ETL script as module
+      # Debug: Test import of ETL script as Python module
       - name: Run ETL script via module import
         run: python -c "import src.etl.load_to_db"
 
+      # Setup Python environment
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'      # Use a stable Python version for GitHub Actions
 
+      # Install required dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # Run the scraper script to download CSV
       - name: Run scraper script (download CSV)
         run: python src/scraper/scrape.py
 
-      # Debug step: Check if load_to_db.py exists before running
+      # Check file existence before running loader
       - name: Check load_to_db.py existence
         run: |
           if [ -f src/etl/load_to_db.py ]; then
@@ -87,12 +103,13 @@ jobs:
             exit 1
           fi
 
-      # Ensure your load_to_db.py uses this database URL:
-      # postgresql://postgres:discombobulated@localhost:5432/food_price_db
-
+      # Run data loader script with correct DB URL as environment variable
       - name: Run data loader script (load to DB)
+        env:
+          DATABASE_URL: postgresql://postgres:discombobulated@localhost:5432/food_price_db
         run: python src/etl/load_to_db.py
 
+      # Upload the downloaded raw CSV as artifact
       - name: Upload downloaded raw CSV
         uses: actions/upload-artifact@v4
         with:
