@@ -37,13 +37,15 @@ jobs:
       - name: Build API Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./api
+          context: .  # Build from root
+          file: api/Dockerfile  # Path to Dockerfile
           push: false
           tags: food-price-tracker-api:latest
       - name: Build Dashboard Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./dashboard
+          context: .  # Build from root
+          file: dashboard/Dockerfile  # Path to Dockerfile
           push: false
           tags: food-price-tracker-dashboard:latest
 
