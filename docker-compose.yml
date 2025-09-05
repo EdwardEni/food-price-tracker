@@ -1,12 +1,18 @@
+version: '3.9'
+
 services:
   api:
     build:
-      context: .  # Build from root
-      dockerfile: api/Dockerfile  # Path to Dockerfile
-    # ... rest unchanged
+      context: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./fpt:/app/fpt
 
   dashboard:
     build:
-      context: .  # Build from root
-      dockerfile: dashboard/Dockerfile  # Path to Dockerfile
-    # ... rest unchanged
+      context: ./dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./fpt:/app/fpt
