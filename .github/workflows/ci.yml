@@ -34,14 +34,18 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build Docker images
+      - name: Build API Docker image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./api
           push: false
-          tags: |
-            food-price-tracker-api:latest
-            food-price-tracker-dashboard:latest
+          tags: food-price-tracker-api:latest
+      - name: Build Dashboard Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: ./dashboard
+          push: false
+          tags: food-price-tracker-dashboard:latest
 
   scrape:
     if: github.event_name == 'schedule'
