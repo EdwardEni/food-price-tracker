@@ -38,8 +38,8 @@ jobs:
         run: |
           echo "DOCKERHUB_USERNAME exists: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
           echo "DOCKERHUB_TOKEN exists: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
-          echo "Username length: ${#secrets.DOCKERHUB_USERNAME}"
-          echo "Token starts with: ${secrets.DOCKERHUB_TOKEN:0:8}"
+          echo "Username: ${{ secrets.DOCKERHUB_USERNAME }}"
+          echo "Token starts with: ${{ secrets.DOCKERHUB_TOKEN }}"
       - name: Login to DockerHub
         uses: docker/login-action@v2
         with:
