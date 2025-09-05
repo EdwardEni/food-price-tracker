@@ -45,7 +45,7 @@ jobs:
           context: .
           push: false # set to true if you want to push images to DockerHub
           platforms: linux/amd64,linux/arm64
-          tags: EDWARDUK/api:latest,EDWARDUK/dashboard:latest
+          tags: edwarduk85/api:latest,edwarduk85/dashboard:latest
 
   scrape:
     if: github.event_name == 'schedule'
