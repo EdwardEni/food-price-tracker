@@ -3,20 +3,28 @@ version: "3.9"
 services:
   api:
     build:
-      context: ./api
+      context: .
+      dockerfile: Dockerfile.api
     ports:
       - "8000:8000"
     volumes:
+      - .:/app
       - ./fpt:/app/fpt  # Mount model and forecast data
+    environment:
+      - PYTHONPATH=/app
     restart: unless-stopped
 
   dashboard:
     build:
-      context: ./dashboard
+      context: .
+      dockerfile: Dockerfile.dashboard
     ports:
       - "8501:8501"
     volumes:
+      - .:/app
       - ./fpt:/app/fpt  # Mount forecast data for dashboard
+    environment:
+      - API_URL=http://api:8000
     depends_on:
       - api
     restart: unless-stopped

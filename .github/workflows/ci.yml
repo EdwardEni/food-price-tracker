@@ -34,28 +34,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Debug secrets thoroughly
-        run: |
-          echo "=== SECRET DEBUG INFORMATION ==="
-          echo "DOCKERHUB_USERNAME exists: ${{ secrets.DOCKERHUB_USERNAME != '' }}"
-          echo "DOCKERHUB_TOKEN exists: ${{ secrets.DOCKERHUB_TOKEN != '' }}"
-          echo "Username value: '${{ secrets.DOCKERHUB_USERNAME }}'"
-          echo "Username length: ${#secrets.DOCKERHUB_USERNAME}"
-          echo "Token starts with: '${secrets.DOCKERHUB_TOKEN:0:8}'"
-          echo "Token length: ${#secrets.DOCKERHUB_TOKEN}"
-          echo "==============================="
-      - name: Test Docker login manually
-        run: |
-          echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin docker.io
       - name: Build Docker images
         uses: docker/build-push-action@v4
         with:
           context: .
           push: false
-          platforms: linux/amd64,linux/arm64
           tags: |
-            edwarduk85/api:latest
-            edwarduk85/dashboard:latest
+            food-price-tracker-api:latest
+            food-price-tracker-dashboard:latest
 
   scrape:
     if: github.event_name == 'schedule'
