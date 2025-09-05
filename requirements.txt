@@ -13,3 +13,4 @@ fastapi
 uvicorn
 joblib
 plotly
+pytest
