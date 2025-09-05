@@ -1,0 +1,2 @@
+pipeline_completion_time,total_data_points,unique_groups_processed,prophet_models_trained,duplicate_rows_found,backtest_metrics
+2025-09-02 17:43:24,48,1,1,0,"{'MAE': 3.4300211698203653, 'RMSE': 3.7579472049025515, 'MAPE': 4.334557824073758}"

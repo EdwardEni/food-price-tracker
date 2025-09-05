@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./fpt:/app/fpt  # Mount model and forecast data
+    restart: unless-stopped
+
+  dashboard:
+    build:
+      context: ./dashboard
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./fpt:/app/fpt  # Mount forecast data for dashboard
+    depends_on:
+      - api
+    restart: unless-stopped

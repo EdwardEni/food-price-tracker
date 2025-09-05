@@ -9,3 +9,7 @@ streamlit
 flask
 gunicorn
 beautifulsoup4
+fastapi
+uvicorn
+joblib
+plotly

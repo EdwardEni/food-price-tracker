@@ -1,0 +1,2 @@
+group,persistence_forecast,moving_average_forecast,last_actual_price,data_points,forecast_date,admin_id,mkt_id,cm_id
+"(1.0, 266, 0.0)",96.45833333333334,93.9732909936926,96.45833333333334,48,2025-09-02,1.0,266,0.0
