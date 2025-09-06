@@ -9,14 +9,34 @@ app = FastAPI(title="Food Price Forecast API")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Absolute path to models folder inside fpt/
-
-MODEL_DIR = "fpt/models"
+MODEL_DIR = "/fpt/models"
 
 # Load all Prophet models at startup
-loaded_models = {
-    fname: joblib.load(os.path.join(MODEL_DIR, fname))
-    for fname in os.listdir(MODEL_DIR) if fname.endswith(".joblib")
-}
+loaded_models = {}
+
+print(f"Looking for models in: {MODEL_DIR}")
+print(f"Directory exists: {os.path.exists(MODEL_DIR)}")
+
+if os.path.exists(MODEL_DIR):
+    print(f"Loading models from {MODEL_DIR}")
+    try:
+        files = os.listdir(MODEL_DIR)
+        print(f"Files in directory: {files}")
+        
+        for fname in files:
+            if fname.endswith(".joblib"):
+                try:
+                    model_path = os.path.join(MODEL_DIR, fname)
+                    loaded_models[fname] = joblib.load(model_path)
+                    print(f"✅ Loaded model: {fname}")
+                except Exception as e:
+                    print(f"❌ Error loading model {fname}: {e}")
+    except Exception as e:
+        print(f"❌ Error reading directory: {e}")
+else:
+    print(f"⚠️  Model directory not found: {MODEL_DIR}")
+
+print(f"Total models loaded: {len(loaded_models)}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
