@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 import joblib
 import pandas as pd
 import os
@@ -37,15 +37,29 @@ else:
     print(f"⚠️  Model directory not found: {MODEL_DIR}")
 
 print(f"Total models loaded: {len(loaded_models)}")
+print(f"Models loaded: {list(loaded_models.keys())}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    key = f"prophet_model_{admin_id}_{mkt_id}_{cm_id}.joblib"
-    return loaded_models.get(key)
+    # Try both formats - with double underscores (actual) and single underscores
+    key_double = f"prophet_model_{admin_id}__{mkt_id}__{cm_id}.joblib"
+    key_single = f"prophet_model_{admin_id}_{mkt_id}_{cm_id}.joblib"
+    
+    # Check which format exists
+    if key_double in loaded_models:
+        return loaded_models[key_double]
+    elif key_single in loaded_models:
+        return loaded_models[key_single]
+    else:
+        return None
 
 @app.get("/")
 def index():
-    return {"message": "Welcome to Food Price Forecast API"}
+    return {"message": "Welcome to Food Price Forecast API", "models_loaded": len(loaded_models)}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "API is working", "models_loaded": len(loaded_models)}
 
 @app.get("/forecast/")
 def forecast(
@@ -56,7 +70,7 @@ def forecast(
 ):
     model = get_model(admin_id, mkt_id, cm_id)
     if model is None:
-        return {"error": "Model not found for given group"}
+        raise HTTPException(status_code=404, detail="Model not found for given group")
 
     # Generate future dates, predict
     future = model.make_future_dataframe(periods=periods, freq="D")
