@@ -9,7 +9,7 @@ services:
       - "8000:8000"
     volumes:
       - ./api:/app  # Mount api directory to /app
-      - ./fpt:/app/fpt
+      - ./fpt:/fpt
     environment:
       - PYTHONPATH=/app
       - ENVIRONMENT=development
@@ -23,7 +23,7 @@ services:
       - "8501:8501"
     volumes:
       - ./dashboard:/app  # Mount dashboard directory to /app
-      - ./fpt:/app/fpt
+      - ./fpt:/fpt
     environment:
       - API_URL=http://api:8000
       - ENVIRONMENT=development
