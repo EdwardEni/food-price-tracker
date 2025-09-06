@@ -41,16 +41,22 @@ print(f"Models loaded: {list(loaded_models.keys())}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    # Try both formats - with double underscores (actual) and single underscores
-    key_double = f"prophet_model_{admin_id}__{mkt_id}__{cm_id}.joblib"
-    key_single = f"prophet_model_{admin_id}_{mkt_id}_{cm_id}.joblib"
+    # Debug: print what we're looking for
+    expected_key = f"prophet_model_{admin_id}__{mkt_id}__{cm_id}.joblib"
+    print(f"Looking for model: {expected_key}")
+    print(f"Available models: {list(loaded_models.keys())}")
     
-    # Check which format exists
-    if key_double in loaded_models:
-        return loaded_models[key_double]
-    elif key_single in loaded_models:
-        return loaded_models[key_single]
+    # Check if the exact key exists
+    if expected_key in loaded_models:
+        print(f"✅ Found model: {expected_key}")
+        return loaded_models[expected_key]
     else:
+        print(f"❌ Model not found: {expected_key}")
+        # Try to find any matching model
+        for model_key in loaded_models.keys():
+            if f"_{admin_id}__{mkt_id}__{cm_id}" in model_key:
+                print(f"✅ Found matching model: {model_key}")
+                return loaded_models[model_key]
         return None
 
 @app.get("/")
@@ -63,9 +69,9 @@ async def health_check():
 
 @app.get("/forecast/")
 def forecast(
-    admin_id: int = Query(...),
-    mkt_id: int = Query(...),
-    cm_id: int = Query(...),
+    admin_id: float = Query(...),
+    mkt_id: float = Query(...),  # Changed from int to float
+    cm_id: float = Query(...),   # Changed from int to float
     periods: int = Query(30, ge=1, le=30)
 ):
     model = get_model(admin_id, mkt_id, cm_id)
