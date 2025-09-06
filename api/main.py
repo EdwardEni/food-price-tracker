@@ -41,22 +41,21 @@ print(f"Models loaded: {list(loaded_models.keys())}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    # Debug: print what we're looking for
-    expected_key = f"prophet_model_{admin_id}__{mkt_id}__{cm_id}.joblib"
+    # Convert all parameters to strings and remove .0 if needed
+    admin_str = str(admin_id).rstrip('.0') if isinstance(admin_id, float) else str(admin_id)
+    mkt_str = str(mkt_id).rstrip('.0') if isinstance(mkt_id, float) else str(mkt_id)
+    cm_str = str(cm_id).rstrip('.0') if isinstance(cm_id, float) else str(cm_id)
+    
+    expected_key = f"prophet_model_{admin_str}__{mkt_str}__{cm_str}.joblib"
     print(f"Looking for model: {expected_key}")
-    print(f"Available models: {list(loaded_models.keys())}")
     
     # Check if the exact key exists
     if expected_key in loaded_models:
-        print(f"✅ Found model: {expected_key}")
+        print(f"✅ Found exact model: {expected_key}")
         return loaded_models[expected_key]
     else:
-        print(f"❌ Model not found: {expected_key}")
-        # Try to find any matching model
-        for model_key in loaded_models.keys():
-            if f"_{admin_id}__{mkt_id}__{cm_id}" in model_key:
-                print(f"✅ Found matching model: {model_key}")
-                return loaded_models[model_key]
+        print(f"❌ Exact model not found: {expected_key}")
+        print(f"Available models: {list(loaded_models.keys())}")
         return None
 
 @app.get("/")
@@ -70,23 +69,32 @@ async def health_check():
 @app.get("/forecast/")
 def forecast(
     admin_id: float = Query(...),
-    mkt_id: float = Query(...),  # Changed from int to float
-    cm_id: float = Query(...),   # Changed from int to float
+    mkt_id: float = Query(...),
+    cm_id: float = Query(...),
     periods: int = Query(30, ge=1, le=30)
 ):
-    model = get_model(admin_id, mkt_id, cm_id)
-    if model is None:
-        raise HTTPException(status_code=404, detail="Model not found for given group")
+    try:
+        print(f"Forecast request: admin_id={admin_id}, mkt_id={mkt_id}, cm_id={cm_id}")
+        
+        model = get_model(admin_id, mkt_id, cm_id)
+        if model is None:
+            raise HTTPException(status_code=404, detail="Model not found for given group")
 
-    # Generate future dates, predict
-    future = model.make_future_dataframe(periods=periods, freq="D")
-    forecast_df = model.predict(future).tail(periods)
+        # Generate future dates, predict
+        future = model.make_future_dataframe(periods=periods, freq="D")
+        forecast_df = model.predict(future).tail(periods)
 
-    # Filter to key columns for output
-    result = forecast_df[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_dict(orient="records")
-    return {
-        "admin_id": admin_id,
-        "mkt_id": mkt_id,
-        "cm_id": cm_id,
-        "forecast": result
-    }
+        # Filter to key columns for output
+        result = forecast_df[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_dict(orient="records")
+        
+        print(f"Forecast successful for {admin_id}_{mkt_id}_{cm_id}")
+        return {
+            "admin_id": admin_id,
+            "mkt_id": mkt_id,
+            "cm_id": cm_id,
+            "forecast": result
+        }
+        
+    except Exception as e:
+        print(f"Error in forecast endpoint: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
