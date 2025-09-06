@@ -19,9 +19,9 @@ try:
 except requests.exceptions.RequestException as e:
     st.error(f"❌ Cannot connect to API: {e}")
 
-# Check if forecast data exists
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DATA_DIR = os.path.join(BASE_DIR, "fpt", "forecasts")
+
+# Use the mounted volume path directly
+DATA_DIR = "/app/fpt/forecasts"
 
 if not os.path.exists(DATA_DIR):
     st.warning("📁 Forecasts directory not found. Running scraper will create data.")
