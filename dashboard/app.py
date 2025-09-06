@@ -51,4 +51,36 @@ if not os.path.exists(DATA_DIR):
     
 else:
     st.success("✅ Forecast data directory found")
-    # Your original forecast loading code here
+    
+    # Load and display actual forecast data
+    try:
+        # Find the latest forecast file
+        import glob
+        csv_files = glob.glob(os.path.join(DATA_DIR, "*forecast*.csv"))
+        if csv_files:
+            latest_file = sorted(csv_files)[-1]
+            forecast_df = pd.read_csv(latest_file)
+            
+            st.write("### Latest Forecast Data")
+            st.dataframe(forecast_df.head())
+            
+            # Create forecast plot
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat'],
+                                   mode='lines+markers', name='Forecast', line=dict(color='blue')))
+            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_lower'],
+                                   fill=None, mode='lines', name='Lower Bound', line=dict(color='lightblue')))
+            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_upper'],
+                                   fill='tonexty', mode='lines', name='Upper Bound', line=dict(color='lightblue')))
+            
+            fig.update_layout(
+                title="Food Price Forecast with Confidence Interval",
+                xaxis_title="Date",
+                yaxis_title="Price",
+                hovermode='x unified'
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.warning("No forecast files found in the directory")
+    except Exception as e:
+        st.error(f"Error loading forecast data: {e}")
