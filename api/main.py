@@ -27,10 +27,12 @@ if os.path.exists(MODEL_DIR):
             if fname.endswith(".joblib"):
                 try:
                     model_path = os.path.join(MODEL_DIR, fname)
+                    print(f"Attempting to load: {fname}")
                     loaded_models[fname] = joblib.load(model_path)
-                    print(f"✅ Loaded model: {fname}")
+                    print(f"✅ Successfully loaded model: {fname}")
                 except Exception as e:
-                    print(f"❌ Error loading model {fname}: {e}")
+                    print(f"❌ Error loading model {fname}: {str(e)}")
+                    # Continue with other models
     except Exception as e:
         print(f"❌ Error reading directory: {e}")
 else:
@@ -65,6 +67,22 @@ def index():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "message": "API is working", "models_loaded": len(loaded_models)}
+
+@app.get("/test-model")
+def test_model():
+    try:
+        model_key = "prophet_model_1.0__266__0.0.joblib"
+        if model_key in loaded_models:
+            model = loaded_models[model_key]
+            # Simple test - create a future dataframe
+            future = model.make_future_dataframe(periods=7, freq="D")
+            print("✅ Model test passed - can create future dataframe")
+            return {"status": "success", "message": "Model test passed"}
+        else:
+            return {"status": "error", "message": "Model not found"}
+    except Exception as e:
+        print(f"❌ Model test failed: {e}")
+        return {"status": "error", "message": f"Model test failed: {str(e)}"}
 
 @app.get("/forecast/")
 def forecast(
