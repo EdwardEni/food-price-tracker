@@ -21,7 +21,7 @@ except requests.exceptions.RequestException as e:
 
 
 # Use the mounted volume path directly
-DATA_DIR = "/app/fpt/forecasts"
+DATA_DIR = "fpt/forecasts"
 
 if not os.path.exists(DATA_DIR):
     st.warning("📁 Forecasts directory not found. Running scraper will create data.")

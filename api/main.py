@@ -9,7 +9,8 @@ app = FastAPI(title="Food Price Forecast API")
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # Absolute path to models folder inside fpt/
-MODEL_DIR = os.path.join(BASE_DIR, "fpt", "models")
+
+MODEL_DIR = "fpt/models"
 
 # Load all Prophet models at startup
 loaded_models = {
