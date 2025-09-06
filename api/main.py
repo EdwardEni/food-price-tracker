@@ -43,21 +43,26 @@ print(f"Models loaded: {list(loaded_models.keys())}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    # Convert all parameters to strings and remove .0 if needed
-    admin_str = str(admin_id).rstrip('.0') if isinstance(admin_id, float) else str(admin_id)
-    mkt_str = str(mkt_id).rstrip('.0') if isinstance(mkt_id, float) else str(mkt_id)
-    cm_str = str(cm_id).rstrip('.0') if isinstance(cm_id, float) else str(cm_id)
+    # Debug output
+    print(f"get_model called with: admin_id={admin_id} ({type(admin_id)}), "
+          f"mkt_id={mkt_id} ({type(mkt_id)}), cm_id={cm_id} ({type(cm_id)})")
+    
+    # The actual filename is: prophet_model_1.0__266__0.0.joblib
+    # Convert parameters to match the filename format
+    admin_str = str(admin_id)
+    mkt_str = str(int(mkt_id))  # Convert to int first to remove .0 if float
+    cm_str = str(cm_id)
     
     expected_key = f"prophet_model_{admin_str}__{mkt_str}__{cm_str}.joblib"
     print(f"Looking for model: {expected_key}")
+    print(f"Available models: {list(loaded_models.keys())}")
     
     # Check if the exact key exists
     if expected_key in loaded_models:
-        print(f"✅ Found exact model: {expected_key}")
+        print(f"✅ Found model: {expected_key}")
         return loaded_models[expected_key]
     else:
-        print(f"❌ Exact model not found: {expected_key}")
-        print(f"Available models: {list(loaded_models.keys())}")
+        print(f"❌ Model not found: {expected_key}")
         return None
 
 @app.get("/")
@@ -92,11 +97,16 @@ def forecast(
     periods: int = Query(30, ge=1, le=30)
 ):
     try:
-        print(f"Forecast request: admin_id={admin_id}, mkt_id={mkt_id}, cm_id={cm_id}")
+        print(f"=== FORECAST REQUEST ===")
+        print(f"admin_id: {admin_id} (type: {type(admin_id)})")
+        print(f"mkt_id: {mkt_id} (type: {type(mkt_id)})") 
+        print(f"cm_id: {cm_id} (type: {type(cm_id)})")
         
         model = get_model(admin_id, mkt_id, cm_id)
         if model is None:
-            raise HTTPException(status_code=404, detail="Model not found for given group")
+            return {"error": "Model not found for given group", 
+                    "requested": f"{admin_id}_{mkt_id}_{cm_id}",
+                    "available": list(loaded_models.keys())}
 
         # Generate future dates, predict
         future = model.make_future_dataframe(periods=periods, freq="D")
@@ -105,7 +115,7 @@ def forecast(
         # Filter to key columns for output
         result = forecast_df[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_dict(orient="records")
         
-        print(f"Forecast successful for {admin_id}_{mkt_id}_{cm_id}")
+        print(f"✅ Forecast successful")
         return {
             "admin_id": admin_id,
             "mkt_id": mkt_id,
@@ -114,5 +124,5 @@ def forecast(
         }
         
     except Exception as e:
-        print(f"Error in forecast endpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
+        print(f"❌ Error in forecast: {e}")
+        return {"error": f"Internal server error: {str(e)}"}
