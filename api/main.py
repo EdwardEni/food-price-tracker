@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Query, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
 import os
@@ -6,6 +7,15 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 app = FastAPI(title="Food Price Forecast API")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For production, set to dashboard domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Database setup
 DATABASE_URL = os.getenv('DATABASE_URL')
@@ -53,21 +63,16 @@ print(f"Models loaded: {list(loaded_models.keys())}")
 
 # Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    # Debug output
     print(f"get_model called with: admin_id={admin_id} ({type(admin_id)}), "
           f"mkt_id={mkt_id} ({type(mkt_id)}), cm_id={cm_id} ({type(cm_id)})")
-    
-    # The actual filename is: prophet_model_1.0__266__0.0.joblib
-    # Convert parameters to match the filename format
     admin_str = str(admin_id)
-    mkt_str = str(int(mkt_id))  # Convert to int first to remove .0 if float
+    mkt_str = str(int(mkt_id))
     cm_str = str(cm_id)
     
     expected_key = f"prophet_model_{admin_str}__{mkt_str}__{cm_str}.joblib"
     print(f"Looking for model: {expected_key}")
     print(f"Available models: {list(loaded_models.keys())}")
     
-    # Check if the exact key exists
     if expected_key in loaded_models:
         print(f"✅ Found model: {expected_key}")
         return loaded_models[expected_key]
@@ -89,7 +94,6 @@ def test_model():
         model_key = "prophet_model_1.0__266__0.0.joblib"
         if model_key in loaded_models:
             model = loaded_models[model_key]
-            # Simple test - create a future dataframe
             future = model.make_future_dataframe(periods=7, freq="D")
             print("✅ Model test passed - can create future dataframe")
             return {"status": "success", "message": "Model test passed"}
@@ -109,7 +113,7 @@ def forecast(
     try:
         print(f"=== FORECAST REQUEST ===")
         print(f"admin_id: {admin_id} (type: {type(admin_id)})")
-        print(f"mkt_id: {mkt_id} (type: {type(mkt_id)})") 
+        print(f"mkt_id: {mkt_id} (type: {type(mkt_id)})")
         print(f"cm_id: {cm_id} (type: {type(cm_id)})")
         
         model = get_model(admin_id, mkt_id, cm_id)
@@ -118,11 +122,9 @@ def forecast(
                     "requested": f"{admin_id}_{mkt_id}_{cm_id}",
                     "available": list(loaded_models.keys())}
 
-        # Generate future dates, predict
         future = model.make_future_dataframe(periods=periods, freq="D")
         forecast_df = model.predict(future).tail(periods)
 
-        # Filter to key columns for output
         result = forecast_df[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_dict(orient="records")
         
         print(f"✅ Forecast successful")

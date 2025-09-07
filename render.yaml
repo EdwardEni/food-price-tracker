@@ -1,4 +1,3 @@
-# render.yaml
 services:
   # PostgreSQL Database
   - type: postgres
@@ -23,7 +22,7 @@ services:
         value: production
     healthCheckPath: /health
 
-  # Dashboard Service (Optional - if you want to deploy it too)
+  # Dashboard Service
   - type: web
     name: food-price-dashboard
     plan: free
