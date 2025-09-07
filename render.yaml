@@ -1,0 +1,38 @@
+# render.yaml
+services:
+  # PostgreSQL Database
+  - type: postgres
+    name: food-price-db
+    plan: free
+    databaseName: foodpricedb
+    user: foodpriceuser
+
+  # API Service
+  - type: web
+    name: food-price-api
+    plan: free
+    runtime: docker
+    dockerfilePath: Dockerfile.api
+    envVars:
+      - key: DATABASE_URL
+        fromService:
+          name: food-price-db
+          type: postgres
+          property: connectionString
+      - key: ENVIRONMENT
+        value: production
+    healthCheckPath: /health
+
+  # Dashboard Service (Optional - if you want to deploy it too)
+  - type: web
+    name: food-price-dashboard
+    plan: free
+    runtime: docker
+    dockerfilePath: Dockerfile.dashboard
+    envVars:
+      - key: API_URL
+        fromService:
+          name: food-price-api
+          property: host
+      - key: ENVIRONMENT
+        value: production

@@ -2,8 +2,18 @@ from fastapi import FastAPI, Query, HTTPException
 import joblib
 import pandas as pd
 import os
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 app = FastAPI(title="Food Price Forecast API")
+
+# Database setup
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Set base directory to project root (food-price-tracker)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
