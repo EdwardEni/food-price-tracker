@@ -1,8 +1,8 @@
+import os
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
 import pandas as pd
-import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -11,7 +11,7 @@ app = FastAPI(title="Food Price Forecast API")
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For production, set to dashboard domain
+    allow_origins=["*"],  # Replace "*" with your dashboard URL in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -25,54 +25,48 @@ if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Set base directory to project root (food-price-tracker)
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Absolute path to models folder inside fpt/
+# Models directory path
 MODEL_DIR = "/fpt/models"
 
-# Load all Prophet models at startup
+def check_models_directory():
+    if not os.path.exists(MODEL_DIR):
+        print(f"⚠️ Warning: Model directory not found, creating: {MODEL_DIR}")
+        os.makedirs(MODEL_DIR, exist_ok=True)
+        return False
+    return True
+
+# Load Prophet models at startup
 loaded_models = {}
-
 print(f"Looking for models in: {MODEL_DIR}")
-print(f"Directory exists: {os.path.exists(MODEL_DIR)}")
 
-if os.path.exists(MODEL_DIR):
-    print(f"Loading models from {MODEL_DIR}")
+if check_models_directory():
     try:
         files = os.listdir(MODEL_DIR)
-        print(f"Files in directory: {files}")
-        
+        print(f"Files in model directory: {files}")
         for fname in files:
             if fname.endswith(".joblib"):
                 try:
                     model_path = os.path.join(MODEL_DIR, fname)
-                    print(f"Attempting to load: {fname}")
+                    print(f"Loading model: {fname}")
                     loaded_models[fname] = joblib.load(model_path)
-                    print(f"✅ Successfully loaded model: {fname}")
+                    print(f"✅ Loaded model: {fname}")
                 except Exception as e:
-                    print(f"❌ Error loading model {fname}: {str(e)}")
-                    # Continue with other models
+                    print(f"❌ Failed to load model {fname}: {e}")
     except Exception as e:
-        print(f"❌ Error reading directory: {e}")
+        print(f"❌ Error accessing models directory: {e}")
 else:
-    print(f"⚠️  Model directory not found: {MODEL_DIR}")
+    print(f"⚠️ Model directory not found and was created: {MODEL_DIR}")
 
 print(f"Total models loaded: {len(loaded_models)}")
 print(f"Models loaded: {list(loaded_models.keys())}")
 
-# Helper: Select model for product/region
 def get_model(admin_id, mkt_id, cm_id):
-    print(f"get_model called with: admin_id={admin_id} ({type(admin_id)}), "
-          f"mkt_id={mkt_id} ({type(mkt_id)}), cm_id={cm_id} ({type(cm_id)})")
+    print(f"get_model called with admin_id={admin_id} ({type(admin_id)}), mkt_id={mkt_id} ({type(mkt_id)}), cm_id={cm_id} ({type(cm_id)})")
     admin_str = str(admin_id)
     mkt_str = str(int(mkt_id))
     cm_str = str(cm_id)
-    
     expected_key = f"prophet_model_{admin_str}__{mkt_str}__{cm_str}.joblib"
     print(f"Looking for model: {expected_key}")
-    print(f"Available models: {list(loaded_models.keys())}")
-    
     if expected_key in loaded_models:
         print(f"✅ Found model: {expected_key}")
         return loaded_models[expected_key]
@@ -86,7 +80,13 @@ def index():
 
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy", "message": "API is working", "models_loaded": len(loaded_models)}
+    models_dir_exists = check_models_directory()
+    return {
+        "status": "healthy",
+        "message": "API is working",
+        "models_dir_exists": models_dir_exists,
+        "models_loaded": len(loaded_models),
+    }
 
 @app.get("/test-model")
 def test_model():
@@ -112,29 +112,29 @@ def forecast(
 ):
     try:
         print(f"=== FORECAST REQUEST ===")
-        print(f"admin_id: {admin_id} (type: {type(admin_id)})")
-        print(f"mkt_id: {mkt_id} (type: {type(mkt_id)})")
-        print(f"cm_id: {cm_id} (type: {type(cm_id)})")
-        
+        print(f"admin_id: {admin_id}, mkt_id: {mkt_id}, cm_id: {cm_id}")
+
         model = get_model(admin_id, mkt_id, cm_id)
         if model is None:
-            return {"error": "Model not found for given group", 
-                    "requested": f"{admin_id}_{mkt_id}_{cm_id}",
-                    "available": list(loaded_models.keys())}
+            return {
+                "error": "Model not found for given group",
+                "requested": f"{admin_id}_{mkt_id}_{cm_id}",
+                "available": list(loaded_models.keys())
+            }
 
         future = model.make_future_dataframe(periods=periods, freq="D")
         forecast_df = model.predict(future).tail(periods)
 
         result = forecast_df[["ds", "yhat", "yhat_lower", "yhat_upper"]].to_dict(orient="records")
-        
-        print(f"✅ Forecast successful")
+
+        print("✅ Forecast successful")
         return {
             "admin_id": admin_id,
             "mkt_id": mkt_id,
             "cm_id": cm_id,
             "forecast": result
         }
-        
+
     except Exception as e:
         print(f"❌ Error in forecast: {e}")
         return {"error": f"Internal server error: {str(e)}"}

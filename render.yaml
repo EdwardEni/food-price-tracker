@@ -3,8 +3,6 @@ services:
   - type: postgres
     name: food-price-db
     plan: free
-    databaseName: foodpricedb
-    user: foodpriceuser
 
   # API Service
   - type: web
@@ -30,8 +28,6 @@ services:
     dockerfilePath: Dockerfile.dashboard
     envVars:
       - key: API_URL
-        fromService:
-          name: food-price-api
-          property: host
+        value: https://food-price-api.onrender.com  # Replace with your actual API URL
       - key: ENVIRONMENT
         value: production
