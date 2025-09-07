@@ -16,10 +16,6 @@ COPY api/ /app/api/
 COPY fpt/ /app/fpt/
 COPY src/ /app/src/
 
-# Copy and run database initialization script
-COPY scripts/ /app/scripts/
-RUN python scripts/init_db.py
-
 # Create directory for forecasts
 RUN mkdir -p /app/fpt/forecasts
 
