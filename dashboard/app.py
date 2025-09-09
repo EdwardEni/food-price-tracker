@@ -14,21 +14,30 @@ st.title("Food Price Tracker Dashboard")
 # Get API URL from environment variable or use default
 API_URL = os.getenv('API_URL', 'http://localhost:8000')
 
-# Test API connection
+# Test API connection with better error handling
 try:
-    response = requests.get(urljoin(API_URL, "/"), timeout=10)
+    response = requests.get(f"{API_URL}/", timeout=5)
     if response.status_code == 200:
         st.success(f"✅ Connected to API: {API_URL}")
+    elif response.status_code == 429:
+        st.warning("⚠️ API rate limit exceeded. Please wait a moment.")
     else:
         st.error(f"❌ API connection failed: {response.status_code}")
 except requests.exceptions.RequestException as e:
-    st.error(f"❌ Cannot connect to API {API_URL}: {e}")
+    st.warning(f"⚠️ API connection issue: {e}")
 
-# Use the mounted volume path directly
-DATA_DIR = "/fpt/forecasts"
+# Use the correct path for forecasts
+DATA_DIR = "/app/fpt/forecasts"
 
 if not os.path.exists(DATA_DIR):
-    st.warning("📁 Forecasts directory not found. Running scraper will create data.")
+    st.warning("📁 Forecasts directory not found. Forecast data will appear here once generated.")
+    
+    # Create the directory if it doesn't exist
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+        st.info("📁 Created forecasts directory")
+    except Exception as e:
+        st.error(f"❌ Could not create forecasts directory: {e}")
     
     # Create sample data for demonstration
     sample_dates = pd.date_range(start='2024-01-01', periods=30, freq='D')
@@ -55,15 +64,16 @@ if not os.path.exists(DATA_DIR):
 else:
     st.success("✅ Forecast data directory found")
     
-    # Load and display actual forecast data
+    # Load and display actual forecast data with error handling
     try:
         # Find the latest forecast file
-        csv_files = glob.glob(os.path.join(DATA_DIR, "*forecast*.csv"))
+        csv_files = [f for f in os.listdir(DATA_DIR) if f.endswith('.csv') and 'forecast' in f.lower()]
         if csv_files:
             latest_file = sorted(csv_files)[-1]
-            forecast_df = pd.read_csv(latest_file)
+            file_path = os.path.join(DATA_DIR, latest_file)
+            forecast_df = pd.read_csv(file_path)
             
-            st.write("### Latest Forecast Data")
+            st.write(f"### Latest Forecast Data ({latest_file})")
             st.dataframe(forecast_df.head())
             
             # Create forecast plot
@@ -83,6 +93,7 @@ else:
             )
             st.plotly_chart(fig, use_container_width=True)
         else:
-            st.warning("No forecast files found in the directory")
+            st.info("📊 No forecast files found. Run the forecast generator to create data.")
+            
     except Exception as e:
-        st.error(f"Error loading forecast data: {e}")
+        st.error(f"❌ Error loading forecast data: {e}")
