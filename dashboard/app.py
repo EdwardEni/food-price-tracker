@@ -76,24 +76,49 @@ else:
             st.write(f"### Latest Forecast Data ({latest_file})")
             st.dataframe(forecast_df.head())
             
-            # Create forecast plot
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat'],
-                                   mode='lines+markers', name='Forecast', line=dict(color='blue')))
-            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_lower'],
-                                   fill=None, mode='lines', name='Lower Bound', line=dict(color='lightblue')))
-            fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_upper'],
-                                   fill='tonexty', mode='lines', name='Upper Bound', line=dict(color='lightblue')))
+            # Check what columns we have and adapt accordingly
+            st.write("#### Available Columns:")
+            st.write(list(forecast_df.columns))
             
-            fig.update_layout(
-                title="Food Price Forecast with Confidence Interval",
-                xaxis_title="Date",
-                yaxis_title="Price",
-                hovermode='x unified'
-            )
-            st.plotly_chart(fig, use_container_width=True)
+            # Try to create a plot with available data
+            if 'ds' in forecast_df.columns and 'yhat' in forecast_df.columns:
+                # This is a Prophet-style forecast file
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat'],
+                                       mode='lines+markers', name='Forecast', line=dict(color='blue')))
+                if 'yhat_lower' in forecast_df.columns and 'yhat_upper' in forecast_df.columns:
+                    fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_lower'],
+                                           fill=None, mode='lines', name='Lower Bound', line=dict(color='lightblue')))
+                    fig.add_trace(go.Scatter(x=forecast_df['ds'], y=forecast_df['yhat_upper'],
+                                           fill='tonexty', mode='lines', name='Upper Bound', line=dict(color='lightblue')))
+                
+                fig.update_layout(
+                    title="Food Price Forecast",
+                    xaxis_title="Date",
+                    yaxis_title="Price",
+                    hovermode='x unified'
+                )
+                st.plotly_chart(fig, use_container_width=True)
+                
+            elif 'persistence_forecast' in forecast_df.columns or 'moving_average_forecast' in forecast_df.columns:
+                # This is a baseline forecast file - show different visualization
+                st.info("📊 Baseline forecast data loaded")
+                st.metric("Persistence Forecast", f"${forecast_df['persistence_forecast'].iloc[0]:.2f}")
+                st.metric("Moving Average Forecast", f"${forecast_df['moving_average_forecast'].iloc[0]:.2f}")
+                
+            else:
+                st.warning("📋 Unknown forecast format. Showing raw data.")
+                st.dataframe(forecast_df)
+                
         else:
             st.info("📊 No forecast files found. Run the forecast generator to create data.")
             
     except Exception as e:
         st.error(f"❌ Error loading forecast data: {e}")
+        # Show available files for debugging
+        if 'DATA_DIR' in locals():
+            try:
+                files = os.listdir(DATA_DIR)
+                st.write("📁 Files in forecast directory:", files)
+            except:
+                pass
