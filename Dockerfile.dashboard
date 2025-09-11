@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install additional packages for environment variables
+RUN pip install --no-cache-dir python-dotenv
+
 # Copy dashboard application code (app.py and related files)
 COPY dashboard/ /app/
 
@@ -19,6 +22,9 @@ COPY fpt/ /app/fpt/
 
 # Create directory for forecasts if not present
 RUN mkdir -p /app/fpt/forecasts
+
+# Create logs directory
+RUN mkdir -p /app/logs
 
 # Create non-root user for security
 RUN useradd -m -u 1000 renderuser
