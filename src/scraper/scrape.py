@@ -16,15 +16,23 @@ def download_file(url, save_path):
     try:
         logging.info(f"Downloading from: {url}")
         response = requests.get(url, stream=True, timeout=30)
-        response.raise_for_status()
+        response.raise_for_status()  # This will raise an exception for 4xx/5xx responses
+        
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         with open(save_path, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+                if chunk:  # filter out keep-alive chunks
+                    f.write(chunk)
         logging.info(f"Saved file to: {save_path}")
         return True
     except Exception as e:
         logging.error(f"Failed to download {url}: {e}")
+        # Remove the file if it was partially created
+        if os.path.exists(save_path):
+            try:
+                os.remove(save_path)
+            except:
+                pass
         return False
 
 if __name__ == "__main__":
