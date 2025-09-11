@@ -12,10 +12,18 @@ class PriceAlert:
         
     def detect_spike(self, current_price, historical_prices):
         """Detect if current price is a spike compared to historical data"""
+        # Check for insufficient data first
         if not historical_prices or len(historical_prices) < 7:
-            return False
+            return False, 0
             
+        # Calculate average and check for zero/very small values
         avg_price = np.mean(historical_prices)
+        
+        # Use a small epsilon to avoid floating point issues
+        if abs(avg_price) < 1e-10:  # Very close to zero
+            return False, 0
+            
+        # Safe division
         price_change = ((current_price - avg_price) / avg_price) * 100
         
         if price_change > self.threshold_percent:
@@ -44,3 +52,14 @@ def check_for_alerts(forecast_df):
                 percent_change=percent_change,
                 forecast_date=row['ds']
             )
+
+def send_alert(product_id, current_price, percent_change, forecast_date):
+    """Send price alert notification"""
+    logger.critical(
+        f"🚨 PRICE ALERT: Product {product_id} | "
+        f"Price: ${current_price:.2f} | "
+        f"Change: +{percent_change:.2f}% | "
+        f"Date: {forecast_date}"
+    )
+    # Here you could add email, SMS, or other notification methods
+    # For now, we'll just log critical alerts
