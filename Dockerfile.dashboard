@@ -23,8 +23,8 @@ COPY fpt/ /app/fpt/
 # Create directory for forecasts if not present
 RUN mkdir -p /app/fpt/forecasts
 
-# Create logs directory
-RUN mkdir -p /app/logs
+# Create logs directory with proper permissions
+RUN mkdir -p /app/logs && chmod 755 /app/logs
 
 # Create non-root user for security
 RUN useradd -m -u 1000 renderuser

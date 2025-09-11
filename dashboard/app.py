@@ -7,17 +7,61 @@ from urllib.parse import urljoin
 import glob
 import logging
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 
-# Set up logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("/app/logs/dashboard.log"),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger("dashboard")
+# Set up logging with proper permissions handling
+def setup_logging():
+    try:
+        log_dir = "/app/logs"
+        # Create logs directory with proper permissions
+        os.makedirs(log_dir, exist_ok=True, mode=0o755)  # Read/execute for all
+        
+        # Create logger
+        logger = logging.getLogger("dashboard")
+        logger.setLevel(logging.INFO)
+        
+        # File handler (with proper permissions)
+        file_handler = RotatingFileHandler(
+            f"{log_dir}/dashboard.log",
+            maxBytes=1024*1024,  # 1MB
+            backupCount=3,
+            mode='a'  # Append mode
+        )
+        file_handler.setLevel(logging.INFO)
+        
+        # Console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.INFO)
+        
+        # Formatter
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        )
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+        
+        # Add handlers
+        logger.addHandler(file_handler)
+        logger.addHandler(console_handler)
+        
+        logger.info("Logging setup completed successfully")
+        return logger
+        
+    except PermissionError:
+        # Fallback to console-only logging if file logging fails
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger("dashboard")
+        logger.warning("File logging disabled due to permissions. Using console logging only.")
+        return logger
+    except Exception as e:
+        # Fallback to basic logging
+        logging.basicConfig(level=logging.INFO)
+        logger = logging.getLogger("dashboard")
+        logger.error(f"Logging setup failed: {e}. Using basic logging.")
+        return logger
+
+# Initialize logger
+logger = setup_logging()
 
 # Set page layout
 st.set_page_config(page_title="Food Price Tracker Dashboard", layout="wide")
