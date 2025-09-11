@@ -15,3 +15,6 @@ joblib
 plotly
 pytest
 python-dotenv
+pytest-cov
+requests-mock
+httpx
