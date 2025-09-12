@@ -2,6 +2,10 @@ import pytest
 import pandas as pd
 import tempfile
 import os
+# Add this to the top of each test file
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 @pytest.fixture
 def sample_price_data():

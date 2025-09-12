@@ -1,6 +1,11 @@
 import pytest
 import pandas as pd
 from src.alerts.price_alert import PriceAlert
+# Add this to the top of each test file
+import sys
+import os
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
 
 class TestPriceAlert:
     
