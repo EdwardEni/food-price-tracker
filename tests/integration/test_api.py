@@ -2,20 +2,36 @@ import pytest
 import sys
 import os
 
-# Add the root directory to Python path
-sys.path.append(os.path.join(os.path.dirname(__file__), '../..'))
+# Add the project root to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
+# Skip all tests if API is not available
 try:
     from api.main import app
     from fastapi.testclient import TestClient
+    API_AVAILABLE = True
 except ImportError:
+    API_AVAILABLE = False
     pytest.skip("API module not available", allow_module_level=True)
 
+@pytest.mark.skipif(not API_AVAILABLE, reason="API not available")
 class TestAPI:
     
     @pytest.fixture
     def client(self):
         return TestClient(app)
+    
+    def test_health_endpoint(self, client):
+        """Test health endpoint"""
+        response = client.get("/health")
+        assert response.status_code == 200
+        assert response.json()["status"] == "healthy"
+    
+    def test_root_endpoint(self, client):
+        """Test root endpoint"""
+        response = client.get("/")
+        assert response.status_code == 200
+        assert "message" in response.json()
     
     def test_health_endpoint(self, client):
         """Test health endpoint"""
