@@ -2,18 +2,18 @@ import pytest
 import sys
 import os
 
-# Add the root directory to Python path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '../..'))
+# Add project root to Python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 try:
     from api.main import app
     from fastapi.testclient import TestClient
-    HAS_API = True
+    API_AVAILABLE = True
 except ImportError:
-    HAS_API = False
+    API_AVAILABLE = False
     pytest.skip("API module not available", allow_module_level=True)
 
-@pytest.mark.skipif(not HAS_API, reason="API module not available")
+@pytest.mark.skipif(not API_AVAILABLE, reason="API not available")
 class TestAPI:
     
     @pytest.fixture
@@ -21,7 +21,6 @@ class TestAPI:
         return TestClient(app)
     
     def test_health_endpoint(self, client):
-        """Test health endpoint"""
         response = client.get("/health")
         assert response.status_code == 200
         assert response.json()["status"] == "healthy"
