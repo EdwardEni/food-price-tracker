@@ -12,7 +12,7 @@ app = FastAPI(title="Food Price Forecast API")
 
 # Set up logging
 def setup_logging():
-    log_dir = "logs"
+    log_dir = os.getenv('LOG_DIR', 'logs')
     os.makedirs(log_dir, exist_ok=True)
     
     # Create logger
@@ -56,31 +56,32 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database setup - Fixed implementation
-DATABASE_URL = os.getenv('DATABASE_URL')
-if not DATABASE_URL:
-    logger.warning("DATABASE_URL environment variable is not set")
-    # Create a dummy engine for development if database is not critical
-    engine = None
-    SessionLocal = None
-else:
-    # Handle Heroku-style PostgreSQL URLs
-    if DATABASE_URL.startswith('postgres://'):
-        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-    
-    try:
-        engine = create_engine(DATABASE_URL)
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-        logger.info("Database connection established successfully")
-    except Exception as e:
-        logger.error(f"Failed to create database engine: {e}")
-        engine = None
-        SessionLocal = None
+# Get environment variables with fallbacks
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./test.db')
+MODEL_DIR = os.getenv('MODELS_PATH', './models')
 
-# Models directory path
-MODEL_DIR = "/fpt/models"
+# Database setup - Fixed implementation
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL environment variable is not set, using fallback")
+    DATABASE_URL = 'sqlite:///./fallback.db'
+
+# Handle Heroku-style PostgreSQL URLs
+if DATABASE_URL.startswith('postgres://'):
+    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+
+try:
+    engine = create_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    logger.info(f"Database connection established successfully to {DATABASE_URL}")
+except Exception as e:
+    logger.error(f"Failed to create database engine: {e}")
+    # Fallback to SQLite if primary database fails
+    logger.info("Falling back to SQLite database")
+    engine = create_engine('sqlite:///./fallback.db')
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 def check_models_directory():
+    # Use the MODEL_DIR from environment variables
     if not os.path.exists(MODEL_DIR):
         logger.warning(f"Model directory not found, creating: {MODEL_DIR}")
         os.makedirs(MODEL_DIR, exist_ok=True)
@@ -141,7 +142,9 @@ async def health_check():
         "message": "API is working",
         "models_dir_exists": models_dir_exists,
         "models_loaded": len(loaded_models),
-        "database": db_status
+        "database": db_status,
+        "models_path": MODEL_DIR,
+        "database_url": DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else DATABASE_URL
     }
 
 @app.get("/test-model")
