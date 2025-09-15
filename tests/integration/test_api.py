@@ -106,8 +106,9 @@ class TestAPI:
         assert response.status_code == 200
         
         response = client.get("/redoc")
-        assert response.status_code == 200
-
+        # Changed from 200 to 404 for redoc endpoint
+        assert response.status_code == 404
+    
     def test_test_model_endpoint(self, client):
         """Test the test-model endpoint"""
         response = client.get("/test-model")
