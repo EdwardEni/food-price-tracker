@@ -56,13 +56,26 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Database setup
+# Database setup - Fixed implementation
 DATABASE_URL = os.getenv('DATABASE_URL')
-if DATABASE_URL and DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
-
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+if not DATABASE_URL:
+    logger.warning("DATABASE_URL environment variable is not set")
+    # Create a dummy engine for development if database is not critical
+    engine = None
+    SessionLocal = None
+else:
+    # Handle Heroku-style PostgreSQL URLs
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+    
+    try:
+        engine = create_engine(DATABASE_URL)
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        logger.info("Database connection established successfully")
+    except Exception as e:
+        logger.error(f"Failed to create database engine: {e}")
+        engine = None
+        SessionLocal = None
 
 # Models directory path
 MODEL_DIR = "/fpt/models"
@@ -122,11 +135,13 @@ def index():
 async def health_check():
     logger.info("Health check endpoint called")
     models_dir_exists = check_models_directory()
+    db_status = "connected" if engine else "disconnected"
     return {
         "status": "healthy",
         "message": "API is working",
         "models_dir_exists": models_dir_exists,
         "models_loaded": len(loaded_models),
+        "database": db_status
     }
 
 @app.get("/test-model")
@@ -159,11 +174,14 @@ def forecast(
         model = get_model(admin_id, mkt_id, cm_id)
         if model is None:
             logger.warning(f"Model not found for group: {admin_id}_{mkt_id}_{cm_id}")
-            return {
-                "error": "Model not found for given group",
-                "requested": f"{admin_id}_{mkt_id}_{cm_id}",
-                "available": list(loaded_models.keys())
-            }
+            raise HTTPException(
+                status_code=404,
+                detail={
+                    "error": "Model not found for given group",
+                    "requested": f"{admin_id}_{mkt_id}_{cm_id}",
+                    "available": list(loaded_models.keys())
+                }
+            )
 
         future = model.make_future_dataframe(periods=periods, freq="D")
         forecast_df = model.predict(future).tail(periods)
@@ -178,6 +196,8 @@ def forecast(
             "forecast": result
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error in forecast: {e}")
-        return {"error": f"Internal server error: {str(e)}"}
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
